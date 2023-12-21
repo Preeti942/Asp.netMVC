@@ -1,0 +1,99 @@
+ public class EmployeesMasterService : IEmployeesMasterService
+    {
+        private readonly IConfiguration configuration;
+        
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        
+        private readonly IGenericRepoToReadOnly<EmployeesContext> genericRepoToReadOnly;
+
+        public EmployeesMasterService(
+            IHttpContextAccessor httpContextAccessor, IConfiguration _configuration,IGenericRepoToReadOnly<EmployeesContext> genericRepoToReadOnly)
+        {
+            this.configuration = _configuration;
+            _httpContextAccessor = httpContextAccessor;
+           this.genericRepoToReadOnly = genericRepoToReadOnly;
+            
+        }
+
+
+private async Task SendEmail(string userEmail, string otp)
+        {
+            string SMTPServer = configuration.GetSection("SMTPMail:SMTPServer").Value;
+            string SMTPPort2 = configuration.GetSection("SMTPMail:SMTPPort").Value;
+            string SMTPUsername = configuration.GetSection("SMTPMail:SMTPUsername").Value;
+            string SMTPPAssword = configuration.GetSection("SMTPMail:SMTPPAssword").Value;
+            string stringUrl = configuration.GetSection("Project:Url").Value;
+            int SMTPPort = int.Parse(SMTPPort2);
+            string projectUrl = stringUrl;
+
+
+            string BaseUrl = string.Empty; string OTPValidateUrl = string.Empty;
+            var request = _httpContextAccessor.HttpContext.Request;
+            BaseUrl = $"{request.Scheme}://{request.Host}";
+
+
+            BaseUrl = BaseUrl + stringUrl;
+            OTPValidateUrl = BaseUrl;
+            using (var client = new SmtpClient(SMTPServer, SMTPPort))
+            {
+                client.UseDefaultCredentials = false;
+                client.Credentials = new NetworkCredential(SMTPUsername, SMTPPAssword);
+                client.EnableSsl = true;
+                var message = new MailMessage();
+                message.From = new MailAddress(SMTPUsername, "Uneecops");
+                message.To.Add(userEmail);
+
+                message.Subject = "Your OTP Code";
+                message.IsBodyHtml = true;
+
+
+                string otpMessage = $"Your OTP code is: {otp}";
+
+
+                //string emailBody = $@"<p>{otpMessage}</p>
+                //                           <p>To access the project, click the link below:</p>
+                //                           <p><a href='"+OTPValidateUrl+"'>"+ OTPValidateUrl + "</a></p>";
+
+                string emailBody = "<div style=\"font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2\">\r\n  <div style=\"margin:50px auto;width:70%;padding:20px 0\">\r\n    <div style=\"border-bottom:1px solid #eee\">\r\n      <a href=\"\" style=\"font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600\">WMS</a>\r\n    </div>\r\n    <p style=\"font-size:1.1em\">Hi,</p>\r\n    <p>Thank you for choosing WMS. Use the following OTP to complete your Sign Up procedures. OTP is valid for 5 minutes</p>\r\n    <h2 style=\"background: #00466a;margin: 0 auto;width: max-content;padding: 0 10px;color: #fff;border-radius: 4px;\">{{OTP}}</h2>\r\n    <p>Please click <a href='{{OTPValidateUrl}}'> here </a>to validate your otp.</p>\r\n    <p style=\"font-size:0.9em;\">Regards,<br />WMS</p>\r\n    <hr style=\"border:none;border-top:1px solid #eee\" />\r\n    <div style=\"float:right;padding:8px 0;color:#aaa;font-size:0.8em;line-height:1;font-weight:300\">\r\n      <p>WMS</p>\r\n      <p>Noida,68</p>\r\n      <p>India</p>\r\n    </div>\r\n  </div>\r\n</div>".Replace("{{OTP}}", otpMessage).Replace("{{OTPValidateUrl}}", OTPValidateUrl);
+
+                message.Body = emailBody;
+
+
+                ServicePointManager.ServerCertificateValidationCallback =
+                    (sender, certificate, chain, sslPolicyErrors) => true;
+
+                var sendTask = client.SendMailAsync(message);
+                await sendTask;
+                bool response = sendTask.IsCompleted;
+                if (response)
+                    response = true;
+                else
+                    response = false;
+
+            }
+        }
+public static string Generate4DigitOTP()
+        {
+            Random random = new Random();
+            int otp = random.Next(1000, 9999);
+            return otp.ToString("D4");
+        }
+
+appsettings.Development.Json-
+
+
+ "SMTPMail": {
+
+    "SMTPServer": "smtp.office365.com",
+    "SMTPPort": 587,
+    "SMTPUsername": "preeti.chaudhary@uneecops.com",
+    "SMTPPAssword": "Pc@#654321"
+
+
+  },
+  "Project": {
+    "Url": "/OTPValidate"
+  },
+  "BasePublishUrl": {
+    "Url": "/WMSAPIDEVHANA/api/"
+  }
