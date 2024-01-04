@@ -87,7 +87,7 @@ appsettings.Development.Json-
     "SMTPServer": "smtp.office365.com",
     "SMTPPort": 587,
     "SMTPUsername": "preeti.chaudhary@uneecops.com",
-    "SMTPPAssword": "Pc@#654321"
+    "SMTPPAssword": "Pc@"
 
 
   },
