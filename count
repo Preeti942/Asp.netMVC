@@ -1,0 +1,16 @@
+var result = from user in this.genericRepoToReadOnly.GetContext().UsersEntity.AsNoTracking()
+
+
+                         select new UserMasterResponseDto
+                         {
+                             UserName = user.UserName ?? "",
+                             UserGuId = user.UserGuId,
+                             UserId = user.UserId,
+                             UserCode = user.UserCode,
+                             MobileNo = user.MobileNo,
+                             EmailId = user.EmailId,
+                             CountWarehouse = this.genericRepoToReadOnly.GetContext().ULUserWarehouseEntity.AsNoTracking().Count(x=>x.Checked==true && x.UserId==user.UserId)
+
+                                  
+                         };
+}
