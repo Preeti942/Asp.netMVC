@@ -1,0 +1,66 @@
+public async Task<WrapperStandardResponse<ULUserWarehouseResponseDto>> OnLoadForEditServicesAsync(WrapperStandardRequest<string> wrapperStandardRequest)
+        {
+
+            var userGuid = Guid.Parse(wrapperStandardRequest.RequestData);
+
+            // Fetch the user's information (UserName)
+            var user = await this.genericRepoToReadOnly.GetContext().UsersEntity.AsNoTracking().Where(u => u.UserGuId == userGuid)
+                .Select(u => new UserMasterResponseDto
+                {
+                    UserName = u.UserName ?? "",
+                    UserId = u.UserId,
+                    UserCode = u.UserCode,
+                    EmailId = u.EmailId,
+                    MobileNo = u.MobileNo,
+                    UserGuId = userGuid,
+                })
+                .SingleOrDefaultAsync();
+            var UserId = user.UserId;
+
+            WrapperStandardResponse<ULUserWarehouseResponseDto> response = null;
+            // Fetch the warehouse codes associated with the user
+            var userWarehouseCodes = await GetUserWarehouseCodesAsync((int)UserId);
+
+            // Fetch the warehouse codes here
+            var sapwarehouse = await _warehouseservice.ListViewServiceAsync(new WrapperStandardRequest<List<FilterDto>>
+            {
+
+                RequestData = null,
+                SortColumn = "WarehouseName",
+                isAcending = true,
+                PageRecordCount = 200,
+                PageSize = 1,
+                UserGuid = wrapperStandardRequest.UserGuid
+            });
+
+            var warehouseCodes1 = sapwarehouse.ResponseData.Select(sapwarehouse => new ULUserWarehouseResponseDto
+            {
+                WarehouseCode = sapwarehouse.WarehouseCode,
+                WarehouseName = sapwarehouse.WarehouseName,
+                LocationName = sapwarehouse.LocationName,
+                ZipCode = sapwarehouse.ZipCode,
+                City = sapwarehouse.City,
+                Street = sapwarehouse.Street,
+                Checked = userWarehouseCodes.Where(uwc => uwc.WarehouseCode == sapwarehouse.WarehouseCode).Select(x => x.Checked).SingleOrDefault(),
+                UserWarehouseId = userWarehouseCodes.Where(uwc => uwc.WarehouseCode == sapwarehouse.WarehouseCode).Select(x => x.UserWarehouseId).SingleOrDefault(),
+                UserWarehouseGuId = userWarehouseCodes.Where(uwc => uwc.WarehouseCode == sapwarehouse.WarehouseCode).Select(x => x.UserWarehouseGuId).SingleOrDefault()
+
+            }).ToList();
+
+            response = new WrapperStandardResponse<ULUserWarehouseResponseDto>
+            {
+                ResponseData = new ULUserWarehouseResponseDto
+                {
+                    UserName = user?.UserName ?? "User Not Found",
+                    UserId = user.UserId,
+                    UserCode = user?.UserCode ?? "User Code Not Found",
+                    MobileNo = user?.MobileNo ?? "MobileNo Not Found",
+                    EmailId = user?.EmailId ?? "EmailId Not Found",
+                    // Set the WarehouseCode property with the list of WarehouseCodeDto objects
+                    WarehousecodeList = warehouseCodes1
+
+                }
+            };
+
+            return response;
+        }
