@@ -1,0 +1,75 @@
+public async Task<WrapperStandardResponse<IEnumerable<ULUserWarehouseResponseDto>>> ListViewServiceAsync(WrapperStandardRequest<string> wrapperStandardRequest)
+        {
+
+
+            WrapperStandardResponse<ULUserWarehouseResponseDto> response = null;
+
+            var userGuid = wrapperStandardRequest.UserGuid;
+
+            // Fetch the user's information (UserName)
+            var user1 = await this.genericRepoToReadOnly.GetContext().UsersEntity.AsNoTracking().Where(u => u.UserGuId == userGuid)
+                .Select(u => new UserMasterResponseDto
+                {
+                    UserName = u.UserName ?? "",
+                    UserId = u.UserId,
+                    UserGuId = userGuid,
+                })
+                .SingleOrDefaultAsync();
+            var UserId = user1.UserId;
+
+
+            // Fetch the warehouse codes associated with the user
+            var userWarehouseCodes = await GetUserWarehouseBYUserCodesAsync(UserId);
+
+            // Fetch the warehouse codes here
+            var sapwarehouse = await _warehouseservice.ListViewServiceAsync(new WrapperStandardRequest<List<FilterDto>>
+            {
+
+                RequestData = null,
+                SortColumn = "WarehouseName",
+                isAcending = true,
+                PageRecordCount = 200,
+                PageSize = 1,
+                UserGuid = wrapperStandardRequest.UserGuid
+            });
+
+            var warehouseCodes1 = userWarehouseCodes.Select(warehouse => new UserWarehouseResponse
+            {
+                WarehouseCode = sapwarehouse.ResponseData.Where(x=>x.WarehouseCode== warehouse.WarehouseCode).Select(x=>x.WarehouseCode).SingleOrDefault(),
+                WarehouseName = sapwarehouse.ResponseData.Where(x => x.WarehouseCode == warehouse.WarehouseCode).Select(x => x.WarehouseName).SingleOrDefault(),
+                LocationId = sapwarehouse.ResponseData.Where(x => x.WarehouseCode == warehouse.WarehouseCode).Select(x => x.Location).SingleOrDefault().ToString(),
+                LocationName = sapwarehouse.ResponseData.Where(x => x.WarehouseCode == warehouse.WarehouseCode).Select(x => x.LocationName).SingleOrDefault(),
+                BranchId = sapwarehouse.ResponseData.Where(x => x.WarehouseCode == warehouse.WarehouseCode).Select(x => x.BusinessPlaceID).SingleOrDefault().ToString(),
+                BranchName = sapwarehouse.ResponseData.Where(x => x.WarehouseCode == warehouse.WarehouseCode).Select(x => x.BusinessPlaceName).SingleOrDefault(),
+            }).ToList();
+            var result = (from user in this.genericRepoToReadOnly.GetContext().UsersEntity.AsNoTracking()
+                          where user.UserId == UserId
+
+                          select new ULUserWarehouseResponseDto
+                          {
+                              UserId = user.UserId,
+                              BranchName = "",
+                              UserCode = user.UserCode,
+                              UserGuid = user.UserGuId,
+                              UserWarehouseList= warehouseCodes1,
+                          });
+
+            return new WrapperStandardResponse<IEnumerable<ULUserWarehouseResponseDto>>
+            {
+                ResponseData = mapper.Map<IEnumerable<ULUserWarehouseResponseDto>>(result),
+                RowCount = 1,
+                CurrentPage = 1,
+                PageSize = 1,
+                PageRecordCount = 1
+            };
+        }
+
+
+        public async Task<IEnumerable<ULUserWarehouseEntity>> GetUserWarehouseBYUserCodesAsync(long userid)
+        {
+            // Get the DbSet for ULUserWarehouseEntity
+            var userWarehouseEntities = genericRepoToReadOnly.GetContext().ULUserWarehouseEntity;
+
+            // Use Where to filter the entities by UserId
+            return await userWarehouseEntities.AsNoTracking().Where(uc => uc.UserId == userid && uc.IsActive==true && uc.DelMark==false && uc.Checked==true).ToListAsync();
+        }
