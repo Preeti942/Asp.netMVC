@@ -1,0 +1,54 @@
+ public async Task<WrapperStandardResponse<UMQRConfiguratorResponseDto>> ListQRConfiguratorByIdServiceAsync(WrapperStandardRequest<string> wrapperStandardRequest)
+        {
+            long qrTypeId = this.genericRepoToReadOnly.GetContext().UMQRConfiguratorEntities.AsNoTracking().First(x => x.QRConfiguratorGuId == Guid.Parse(wrapperStandardRequest.RequestData)).QRTypeId;
+
+            var list = (from c1 in this.genericRepoToReadOnly.GetContext().UCQRTypeFieldsEntities.AsNoTracking()
+                       join c2 in this.genericRepoToReadOnly.GetContext().UCQRConfiguratorFieldsEntities.AsNoTracking()
+                       on c1.QRTypeFieldsId equals c2.QRTypeFieldsId into con
+                       from c2 in con.DefaultIfEmpty()
+                       where c1.QRTypeId == qrTypeId //&& c1.IsActive && !c1.DelMark
+                       select new UCQRConfiguratorFieldsRequestDto
+                       {
+                           QRConfiguratorFieldsId = c2 == null ? 0 : c2.QRConfiguratorFieldsId,
+                           QRTypeFieldsId = c1.QRTypeFieldsId,
+                           Checked = (c2 == null ? false : c2.Checked) || c1.IsFixed,
+                           QRTypeFieldName = c1.DisplayName,
+                           IsFixed=c1.IsFixed
+                       }).ToList();
+
+
+
+            var _result = (from config in this.genericRepoToReadOnly.GetContext().UMQRConfiguratorEntities.AsNoTracking()
+                           join Qrtype in this.genericRepoToReadOnly.GetContext().UMQRTypeEntities.AsNoTracking() on config.QRTypeId equals Qrtype.QRTypeId
+                           where !config.DelMark && config.QRConfiguratorGuId == Guid.Parse(wrapperStandardRequest.RequestData)
+                           select new UMQRConfiguratorResponseDto
+                           {
+                               QRConfiguratorId = config.QRConfiguratorId,
+                               QRConfiguratorCode = config.QRConfiguratorCode,
+                               QRConfiguratorName = config.QRConfiguratorName,
+                               Status = config.Status,
+                               IsActive = config.IsActive,
+                               QRTypeId = config.QRTypeId,
+                               QRTypeName = Qrtype.QRTypeName,
+                               QRTypeList = (from config1 in this.genericRepoToReadOnly.GetContext().UMQRTypeEntities.AsNoTracking()
+                                             where config1.IsActive && !config.DelMark
+                                             select new UMQRTypeResponseDto
+                                             {
+                                                 QRTypeId = config1.QRTypeId,
+                                                 QRTypeName = config1.QRTypeName
+                                             }).ToList(),
+                               QRConfiguratorFieldsList = list
+
+                           }).SingleOrDefault();
+
+
+            //UMQRConfiguratorResponseDto result = new UMQRConfiguratorResponseDto();
+
+            //result = (UMQRConfiguratorResponseDto)_result;
+
+            return new WrapperStandardResponse<UMQRConfiguratorResponseDto>()
+            {
+                ResponseData = mapper.Map<UMQRConfiguratorResponseDto>(_result)
+            };
+
+        }
