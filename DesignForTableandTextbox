@@ -1,0 +1,156 @@
+ <div class="row mt-12">
+                <div class="col-md-4">
+                    <div class="confi-flex">
+                        <div id="tbllistview1">
+                            <!-- Add more details if needed -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xl-10">
+                    
+
+
+                    <div class="tab-content mt-3 integration-content table-responsive" id="validationModelbody">
+                        <table class="table table-bordered valid-table" style="min-height:200px;" id="tbllistview">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        Process<span data-toggle="modal" data-target="#FilterModelPopup"><img src="~/images/dot_hide.svg" class="img-copy-icon img-fluid" onclick="modalpopclick('Process','STR','Process','BoxCodeSearch')" /></span>
+                                    </th>
+                                    <th>Movement No<span data-toggle="modal" data-target="#FilterModelPopup"><img src="~/images/dot_hide.svg" class="img-copy-icon img-fluid" onclick="modalpopclick('MovementNo','STR','Movement No','BoxCodeSearch')" /></span></th>
+                                    <th>Movement Date<span data-toggle="modal" data-target="#FilterModelPopup"><img src="~/images/dot_hide.svg" class="img-copy-icon img-fluid" onclick="modalpopclick('MovementDate','STR','Movement Date','BoxCodeSearch')" /></span></th>
+                                    <th>Batch/Serial<span data-toggle="modal" data-target="#FilterModelPopup"><img src="~/images/dot_hide.svg" class="img-copy-icon img-fluid" onclick="modalpopclick('Batch','STR','Batch/Serial','BoxCodeSearch')" /></span></th>
+                                    <th>Expiry Date<span data-toggle="modal" data-target="#FilterModelPopup"><img src="~/images/dot_hide.svg" class="img-copy-icon img-fluid" onclick="modalpopclick('ExpiryDate','STR','Expiry Date','BoxCodeSearch')" /></span></th>
+                                    <th>Manufacturing Date<span data-toggle="modal" data-target="#FilterModelPopup"><img src="~/images/dot_hide.svg" class="img-copy-icon img-fluid" onclick="modalpopclick('MfgDate','STR','Manufacturing Date','BoxCodeSearch')" /></span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                               
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+   
+</div>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    <script src="~/js/BatchCodeSearch.js"></script>
+        <script src="~/js/genericfilter.js"></script>
+
+
+        <script>
+        // JavaScript code to handle displaying no data message
+        $(document).ready(function() {
+            // Assuming data is fetched and stored in a variable named 'data'
+            // Check if data is empty, then display the message
+            if (!data || data.length === 0) {
+                $('#noDataMessage').show(); // Show the no data message
+            }
+        });
+    </script>
+    }
+}
+
+
+
+BatchCodeSearch.js---
+
+
+function searchByBoxCode() {
+    debugger;
+    // Get the value entered in the boxCodeSearch input field
+    var boxCode = document.getElementById('boxCodeSearch').value;
+    if (boxCode === "") {
+        WarningMsg("Please Enter BoxCode");
+        $('#boxCodeSearch').focus();
+        return false;
+    }
+    _ParentColumnValue = boxCode;
+    $.ajax({
+        type: 'POST',
+        dataType: 'json',
+        url: '/BoxCodeSearchListView/Index/',
+        data: { BoxCode: boxCode},
+        success: function (data) {
+            debugger;
+            BindDataAferCallCFL(data);
+            
+        },
+        error: function (err) {
+
+            return false;
+        }
+    });
+}
+
+function BindDataAferCallCFL(data) {
+    debugger;
+    var tableBody = $('#tbllistview tbody');
+    tableBody.empty(); // Clear existing table data
+    var innerHtmlContent = ''; // Initialize inner HTML content
+
+    if (data && data.responseData && data.responseData.data && data.responseData.data.length > 0) {
+        var rows = ''; 
+        for (var i = 0; i < data.responseData.data.length; i++) {
+            rows += '<tr>';
+            rows += '<td>' + data.responseData.data[i].process + '</td>';
+            rows += '<td>' + data.responseData.data[i].movementNo + '</td>';
+            rows += '<td>' + data.responseData.data[i].movementDate + '</td>';
+            rows += '<td>' + data.responseData.data[i].batch + '</td>';
+            rows += '<td>' + data.responseData.data[i].expiryDate + '</td>';
+            rows += '<td>' + data.responseData.data[i].mfgDate + '</td>';
+            rows += '</tr>';
+        }
+
+        // Append generated rows to the table body
+        tableBody.html(rows);
+
+        // Set the inner HTML content outside the loop
+        innerHtmlContent =
+            '<div style="font-size: 18px; line-height: 2.5;">' +
+            'Box Code: ' + data.responseData.boxCode + '<br>' +
+            'Item Code: ' + data.responseData.itemCode + '<br>' +
+            'Item Name: ' + data.responseData.itemName + '<br>' +
+            'Batch/Serial: ' + data.responseData.batch + '<br>' +
+            'Manufacturing Date: ' + data.responseData.expiryDate + '<br>' +
+            'Expiry Date: ' + data.responseData.mfgDate + '<br>' +
+            '</div>';
+    }
+    else {
+        // Display a message or perform an action when there's no data
+        tableBody.html('<tr><td colspan="6" style="color: red;">No data available</td></tr>');
+        // Clear the inner HTML content
+        innerHtmlContent = '';
+    }
+
+    // Set the inner HTML content after the conditional check
+    $('#tbllistview1').html(innerHtmlContent);
+}
+
+
+
+function RefreshBtn() {
+    debugger;
+    
+    location.reload();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
