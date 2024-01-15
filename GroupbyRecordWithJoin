@@ -1,0 +1,11 @@
+
+            var _result = (from a in this.genericRepoToReadOnly.GetContext().UMWHSSubLevelConfigEntities.AsNoTracking()
+                           join b in this.genericRepoToReadOnly.GetContext().UCWHSSubLevelConfigMapEntities.AsNoTracking()
+                           on a.WHSSubLevelConfigId equals b.WHSSubLevelConfigId
+                           where a.IsActive && b.Checked && !a.DelMark
+                           group a by new { a.WHSSubLevelConfigType } into d
+                           select new UMWHSSubLevelConfigResponseDto
+                           {
+                               WHSTypeId = d.FirstOrDefault().WHSSubLevelConfigType,
+                               Count = d.Count()
+                           }).ToList();
